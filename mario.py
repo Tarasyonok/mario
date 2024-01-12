@@ -46,7 +46,7 @@ class Player(pygame.sprite.Sprite):
     def move(self, dx, dy):
         if self.pos_x == 0 and dx == -1 or self.pos_y == 0 and dy == -1:
             return
-        if self.pos_x == width // tile_width - 1 and dx == 1 or self.pos_y == height // tile_height - 1 and dy == 1:
+        if self.pos_x == level_width - 1 and dx == 1 or self.pos_y == level_height - 1 and dy == 1:
             return
         self.pos_x += dx
         self.pos_y += dy
@@ -55,8 +55,9 @@ class Player(pygame.sprite.Sprite):
                 self.pos_x -= dx
                 self.pos_y -= dy
                 break
-        self.rect = self.image.get_rect().move(
-            tile_width * self.pos_x + 15, tile_height * self.pos_y + 5)
+        else:
+            self.rect.x += dx * tile_width
+            self.rect.y += dy * tile_height
 
 
 # основной персонаж
@@ -91,7 +92,7 @@ def terminate():
 def start_screen():
     intro_text = ["ЗАСТАВКА", "",
                   "Правила игры",
-                  "Используйте стрелки для перемещени", ]
+                  "Используйте стрелки для перемещения", ]
 
     fon = pygame.transform.scale(load_image('fon.jpg'), size)
     screen.blit(fon, (0, 0))
@@ -117,21 +118,21 @@ def start_screen():
         clock.tick(FPS)
 
 
-size = width, height = 0, 0
+size = width, height = 700, 500
 tile_width = tile_height = 50
 
 
 def load_level(filename):
-    global width, height, size
+    global level_width, level_height, size
     filename = "data/" + filename
     # читаем уровень, убирая символы перевода строки
     with open(filename, 'r') as mapFile:
         level_map = [line.strip() for line in mapFile]
     # и подсчитываем максимальную длину
     max_width = max(map(len, level_map))
-    width = max_width * tile_width
-    height = len(level_map) * tile_height
-    size = width, height
+    level_width = max_width
+    level_height = len(level_map)
+    # size = width, height
 
     # дополняем каждую строку пустыми клетками ('.')
     return list(map(lambda x: x.ljust(max_width, '.'), level_map))
@@ -139,12 +140,39 @@ def load_level(filename):
 
 m = input("Введите название уровня (без .txt): ")
 player, level_x, level_y = generate_level(load_level(m + '.txt'))
-
+# player, level_x, level_y = generate_level(load_level('map.txt'))
 screen = pygame.display.set_mode(size)
 FPS = 50
 clock = pygame.time.Clock()
 
 start_screen()
+
+
+class Camera:
+    # зададим начальный сдвиг камеры
+    def __init__(self):
+        self.dx = 0
+        self.dy = 0
+
+    # сдвинуть объект obj на смещение камеры
+    def apply(self, obj):
+        # obj.rect.x += self.dx
+        # obj.rect.y += self.dy
+        obj.rect.x += self.dx
+        obj.rect.y += self.dy
+
+    # позиционировать камеру на объекте target
+    def update(self, target):
+        self.dx = -(target.rect.x + target.rect.w // 2 - width // 2)
+        self.dy = -(target.rect.y + target.rect.h // 2 - height // 2)
+
+
+camera = Camera()
+
+# camera.update(player)
+#
+# for sprite in all_sprites:
+#     camera.apply(sprite)
 
 run = True
 while run:
@@ -162,6 +190,11 @@ while run:
                 player.move(-1, 0)
 
     screen.fill(pygame.Color((0, 0, 0)))
+
+    camera.update(player)
+    for elem in all_sprites:
+        camera.apply(elem)
+
     all_sprites.draw(screen)
     tiles_group.draw(screen)
     player_group.draw(screen)
