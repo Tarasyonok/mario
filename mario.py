@@ -127,11 +127,15 @@ def load_level(filename):
     filename = "data/" + filename
     # читаем уровень, убирая символы перевода строки
     with open(filename, 'r') as mapFile:
-        level_map = [line.strip() for line in mapFile]
+        level_map = [list((line.strip() * 15).replace('@', '.')) for line in mapFile.readlines() * 15]
     # и подсчитываем максимальную длину
     max_width = max(map(len, level_map))
     level_width = max_width
     level_height = len(level_map)
+    level_map[len(level_map) // 2][len(level_map[0]) // 2] = '@'
+    for i in range(len(level_map)):
+        level_map[i] = ''.join(level_map[i])
+
     # size = width, height
 
     # дополняем каждую строку пустыми клетками ('.')
